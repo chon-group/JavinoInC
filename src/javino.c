@@ -42,15 +42,15 @@ char* javino_get_msg(const char* port)
 	msg_size_str[4] = '\0';
 		
 	fprintf(stderr, 
-		"\n(get msg) Msg size (str): %s", 
-		msg_size_str);		
+		"\n(javino_get_msg) Msg size (str): %s", 
+		msg_size_str);
 		
 	msg_size = strtol(msg_size_str,
 		NULL,
 		0);
 		
 	fprintf(stderr, 
-    	"\n(get msg) Msg size (int): %d\n", 
+    	"\n(javino_get_msg) Msg size (int): %d\n", 
 		msg_size);
 			
 	char *msg = (char*)malloc(
@@ -67,9 +67,13 @@ char* javino_get_msg(const char* port)
 	if ( (long unsigned)nbytes_read != msg_size*sizeof(char) ){
 
 		fprintf(stderr, 
-			"\nError! Expected %lu bytes read, got %lu",
+			"\n(javino_get_msg) Error: Expected %lu bytes read, got %lu",
 			msg_size*sizeof(char),
 			(long unsigned)nbytes_read );
+
+		free( msg );
+
+		return NULL;
 	
     } else {
             
@@ -77,8 +81,8 @@ char* javino_get_msg(const char* port)
 	}
 					
 	fprintf(stderr,
-		"\n(get msg) MSG: %s", 
-		msg);								
+		"\n(javino_get_msg) MSG Received: %s", 
+		msg);							
 	
 	fclose(fd);
 
