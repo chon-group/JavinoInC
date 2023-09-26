@@ -8,7 +8,7 @@
 // Returns a message string
 // Returns NULL on error
 
-char *javino_get_msg(const char* port)
+char* javino_get_msg(const char* port)
 {
     char buffer[ 7 ];
 	
@@ -16,7 +16,7 @@ char *javino_get_msg(const char* port)
 	
 	int msg_size;
 
-	FILE* fd = fopen(port, "r");	
+	FILE* fd = fopen(port, "r");
 	
 	int nbytes_read = fread(buffer, 
 		sizeof(char), 
@@ -27,21 +27,22 @@ char *javino_get_msg(const char* port)
 		fprintf(stderr, "Error! Couldn't get message header!");
 
         return NULL;
+
 	} else {
 			
-			fprintf(stderr, 
-				"%s", 
-				buffer);
+		fprintf(stderr, 
+			"%s", 
+			buffer);
 	}
 		
 	msg_size_str[0] = '0';		
 	msg_size_str[1] = 'x';		
 	msg_size_str[2] = buffer[4];
 	msg_size_str[3] = buffer[5];
-	msg_size_str[4] = '\n';
+	msg_size_str[4] = '\0';
 		
 	fprintf(stderr, 
-		"\nMsg size (str): %s", 
+		"\n(get msg) Msg size (str): %s", 
 		msg_size_str);		
 		
 	msg_size = strtol(msg_size_str,
@@ -49,7 +50,7 @@ char *javino_get_msg(const char* port)
 		0);
 		
 	fprintf(stderr, 
-    	"\nMsg size (int): %d\n", 
+    	"\n(get msg) Msg size (int): %d\n", 
 		msg_size);
 			
 	char *msg = (char*)malloc(
@@ -61,20 +62,22 @@ char *javino_get_msg(const char* port)
 		msg_size,
 		fd);
 			
-	msg[ msg_size ] = '\n';
+	msg[ msg_size ] = '\0';
 						
-	if ( nbytes_read != msg_size*sizeof(char) ){
-		fprintf(stderr, "Error!");		
+	if ( (long unsigned)nbytes_read != msg_size*sizeof(char) ){
+
+		fprintf(stderr, 
+			"\nError! Expected %lu bytes read, got %lu",
+			msg_size*sizeof(char),
+			(long unsigned)nbytes_read );
 	
     } else {
-        free( msg );
-
-        fprintf(stderr, "Error! Couldn't read the message!");
+            
 			
 	}
 					
 	fprintf(stderr,
-		"\nMSG: %s", 
+		"\n(get msg) MSG: %s", 
 		msg);								
 	
 	fclose(fd);
@@ -106,7 +109,8 @@ int javino_send_msg(const char* port, const char* msg_to_send)
 		hex_str[ 0 ] = '0';
 	}		
 		
-	printf("\nmsg_size (hex): %s",
+	fprintf(stderr, 
+		"\nmsg_size (hex): %s",
 		hex_str);
 			
     msg[ 0 ] = 'f';
