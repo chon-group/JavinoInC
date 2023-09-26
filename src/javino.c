@@ -24,14 +24,14 @@ char* javino_get_msg(const char* port)
 		fd);
 						
 	if ( nbytes_read != (long int)(6*sizeof(char)) ){
-		fprintf(stderr, "Error! Couldn't get message header!");
+		fprintf(stderr, "\nError! Couldn't get message header!");
 
         return NULL;
 
 	} else {
 			
 		fprintf(stderr, 
-			"%s", 
+			"\n(javino_get_msg) Message received header: %s", 
 			buffer);
 	}
 		
@@ -42,7 +42,7 @@ char* javino_get_msg(const char* port)
 	msg_size_str[4] = '\0';
 		
 	fprintf(stderr, 
-		"\n(javino_get_msg) Msg size (str): %s", 
+		"\n(javino_get_msg) Message size (string): %s", 
 		msg_size_str);
 		
 	msg_size = strtol(msg_size_str,
@@ -50,7 +50,7 @@ char* javino_get_msg(const char* port)
 		0);
 		
 	fprintf(stderr, 
-    	"\n(javino_get_msg) Msg size (int): %d\n", 
+    	"\n(javino_get_msg) Message size (int): %d\n", 
 		msg_size);
 			
 	char *msg = (char*)malloc(
@@ -96,7 +96,7 @@ int javino_send_msg(const char* port, const char* msg_to_send)
 	FILE* fd = fopen(port, "w");	
 		
 	fprintf(stderr, 
-        "\nMessage to send: %s", 
+        "\n(javino_send_msg) Message to send: %s", 
 		msg_to_send);
 		
 	int msg_size = strlen( msg_to_send );
@@ -134,7 +134,7 @@ int javino_send_msg(const char* port, const char* msg_to_send)
 	msg[ 6 + i ] = '\0';
 		
 	fprintf(stderr, 
-        "\nFormatted Javino MSG: %s",
+        "\n(javino_send_message) Formatted Javino Message: %s",
 		msg);
 			
 	int nbytes_written = fwrite( msg, 
