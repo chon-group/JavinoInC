@@ -31,7 +31,7 @@ char* javino_get_msg(const char* port)
 	} else {
 			
 		fprintf(stderr, 
-			"%s", 
+			"(javino_get_msg) Message header: %s", 
 			buffer);
 	}
 		
@@ -96,7 +96,7 @@ int javino_send_msg(const char* port, const char* msg_to_send)
 	FILE* fd = fopen(port, "w");	
 		
 	fprintf(stderr, 
-        "\nMessage to send: %s", 
+        "\n(javino_send_msg) Message to send: %s", 
 		msg_to_send);
 		
 	int msg_size = strlen( msg_to_send );
