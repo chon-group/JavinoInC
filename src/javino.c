@@ -37,7 +37,7 @@ char* javino_get_msg(int port)
 	else {
 
 		fprintf(stderr, 
-			"\n(javino_get_msg) Message received header: %s", 
+			"(javino_get_msg) Message header: %s", 
 			buffer);
 	}
 #endif	
