@@ -2,9 +2,13 @@
 
 #define __JAVINO_H__
 
-char *javino_get_msg(const char* port);
+#include <stdio.h>
 
-int javino_send_msg(const char* port, const char* msg_to_send);
 
+#define JAVINO_HEADER_LEN 6
+
+char *javino_get_msg(int port);
+
+int javino_send_msg(int port, const char* msg_to_send);
 
 #endif
