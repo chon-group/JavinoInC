@@ -6,12 +6,12 @@
 
 #define JAVINO_HEADER_LEN 6
 
-void javino_init(int port);
+int javino_init(const char *wr_port, const char *rd_port);
 
 int avaliable_msg();
 
 char* javino_get_msg();
 
-int javino_send_msg(int port, const char* msg_to_send);
+int javino_send_msg(const char* msg_to_send);
 
 #endif

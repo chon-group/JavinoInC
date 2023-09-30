@@ -14,20 +14,18 @@ pthread_mutex_t mutex;
 
 pthread_t thread_id;
 
+int wr_port;
+int rd_port;
+
 int in;
 int out;
 int size;
-
-int exogenous_port;
-
 // Returns a message string
 // Returns NULL on error
 
-void* main_loop(void *port)
+void* main_loop()
 {
     char buffer[ 7 ];
-
-	int local_port = *( (int*)port );
 	
 	char msg_size_str[5];
 	
@@ -37,7 +35,7 @@ void* main_loop(void *port)
 
 	while (1) {
 	
-		nbytes_read = read( local_port , 
+		nbytes_read = read( rd_port , 
 			buffer,  
 			sizeof(char) * 6) ;
 							
@@ -82,7 +80,7 @@ void* main_loop(void *port)
 			sizeof(char)* (msg_size + 1) );			
 			
 			
-		nbytes_read = read( local_port, 
+		nbytes_read = read( rd_port,
 			msg, 
 			sizeof(char) * msg_size );
 			
@@ -131,7 +129,52 @@ void* main_loop(void *port)
 	//fclose(fd);
 }
 
-void javino_init(int port){
+int javino_init(const char *wr_port_path, const char *rd_port_path){
+
+	if ( wr_port_path == NULL ){
+		fprintf(stderr, 
+			"\n(javino_init) ERROR: write port not set on Javino init - aborting");
+
+		return -1;
+	}
+
+	if ( rd_port_path == NULL ){
+		fprintf( stderr, 
+			"\n(javino_init) ERROR: read port not set on Javino init - aborting");
+
+		return -2;
+	}
+
+	if ( ! strcmp(wr_port_path, rd_port_path) ){
+
+		// Ports are equal, open device as read and write
+		wr_port = rd_port = open( wr_port_path, O_RDWR );
+
+		if (wr_port == -1 ){
+
+			perror("(javino_init)");
+
+			return wr_port;
+		}
+
+	} else {
+
+		wr_port = open( wr_port_path, O_WRONLY );
+		if (wr_port == -1 ){
+
+			perror("(javino_init)");
+
+			return wr_port;
+		}		
+
+		rd_port = open( rd_port_path, O_RDONLY );
+		if (rd_port == -1 ){
+
+			perror("(javino_init)");
+
+			return wr_port;
+		}
+	}
 
 	pthread_mutex_init( &mutex, NULL);
 
@@ -143,12 +186,12 @@ void javino_init(int port){
 
 	}
 
-	exogenous_port = port;
-
 	pthread_create( &thread_id,
 		NULL,
 		main_loop,
-		(void*)&exogenous_port);
+		NULL );
+
+	return 0;
 
 }
 
@@ -178,7 +221,7 @@ char* javino_get_msg(){
 }
 
 
-int javino_send_msg(int port, const char* msg_to_send)
+int javino_send_msg(const char* msg_to_send)
 {		
 
 	//FILE* fd = fopen(port, "w");	
@@ -238,7 +281,7 @@ int javino_send_msg(int port, const char* msg_to_send)
 		msg);
 #endif		
 			
-	int nbytes_written = write( port , 
+	int nbytes_written = write( wr_port , 
 		msg,         
         (msg_size + 6) * sizeof(char) );
     								
