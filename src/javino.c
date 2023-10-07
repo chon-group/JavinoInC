@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-char* recv_buffer[ 256 ];
+char* recv_buffer;
 
 pthread_mutex_t mutex;
 
@@ -31,7 +31,7 @@ void* main_loop(void *port)
 	
 	char msg_size_str[5];
 	
-	int msg_size;
+	long int msg_size;
 
 	int nbytes_read;
 
@@ -46,25 +46,26 @@ void* main_loop(void *port)
 
 			return NULL;
 
-		} 
+		}
+
 #ifdef __EXTRA_DEBUG_MESSAGES__				
 	else {
 
 		fprintf(stderr, 
-			"(javino_get_msg) Message header: %s", 
+			"\n(main_loop) Message header: %s", 
 			buffer);
 	}
 #endif	
 		
 		msg_size_str[0] = '0';		
-		msg_size_str[1] = 'x';		
+		msg_size_str[1] = 'x';
 		msg_size_str[2] = buffer[4];
 		msg_size_str[3] = buffer[5];
 		msg_size_str[4] = '\0';
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
 		fprintf(stderr, 
-			"\n(javino_get_msg) Message size (string): %s", 
+			"\n(main_loop) Message size (string): %s", 
 			msg_size_str);
 #endif		
 		
@@ -74,74 +75,63 @@ void* main_loop(void *port)
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
 		fprintf(stderr, 
-			"\n(javino_get_msg) Message size (int): %d\n", 
+			"\n(main_loop) Message size (int): %ld\n", 
 			msg_size);
 #endif
 			
 		char *msg = (char*)malloc(
-			sizeof(char)* (msg_size + 1) );			
-			
-			
+			sizeof(char)* (msg_size + 10) );
+
 		nbytes_read = read( local_port, 
 			msg, 
-			sizeof(char) * msg_size );
+			sizeof(char) * ( msg_size ) );
 			
 		msg[ msg_size ] = '\0';
 
+#ifdef __EXTRA_DEBUG_MESSAGES__						
+		fprintf(stderr, 
+			"\n(main_loop) Message received: %s\n", 
+			msg);
+#endif		
 
-		pthread_mutex_lock( &mutex );
 
-		if (size < 256){
-
-			recv_buffer[ in % 256 ] = msg;
-			in++;
-			size++;
-
-		} else {
-
-			fprintf(stderr, "\nError! Receive buffer is full!");
-
-		}
-
-		pthread_mutex_unlock( &mutex );	
+		pthread_mutex_lock( &mutex );		
 						
 		if ( (long unsigned)nbytes_read != msg_size*sizeof(char) ){
 
 			fprintf(stderr, 
-				"\n(javino_get_msg) Error: Expected %lu bytes read, got %lu",
+				"\n(main_loop) Error: Expected %lu bytes read, got %lu",
 				msg_size*sizeof(char),
 				(long unsigned)nbytes_read );
 
 			free( msg );
 
-			return NULL;
-		
+			recv_buffer = NULL;
+
 		} else {
-				
-				
+
+			if (recv_buffer != NULL){
+				free(recv_buffer);
+			}
+
+			recv_buffer = msg;
 		}
+
+		pthread_mutex_unlock( &mutex );		
+
 
 #ifdef __DEBUG__							
 		fprintf(stderr,
-			"\n(javino_get_msg) Message received: %s", 
+			"\n(main_loop) Message received: %s", 
 			msg);
 #endif
 	}			
 	
-	//fclose(fd);
 }
 
 void javino_init(int port){
 
 	pthread_mutex_init( &mutex, NULL);
-
-	in = out = size = 0;
-
-	for (int i =0; i < 256; i ++ ){
-
-		recv_buffer[ i ] = NULL;
-
-	}
 
 	exogenous_port = port;
 
@@ -159,13 +149,12 @@ char* javino_get_msg(){
 
 	pthread_mutex_lock( &mutex );
 
-	if (size > 0){
-		msg_ptr = recv_buffer[ out % 256 ];
+	if ( recv_buffer != NULL ){
 
-		recv_buffer[ out % 256 ] = NULL;
+		msg_ptr = recv_buffer;
 
-		out++;
-		size--;
+		recv_buffer = NULL;
+		
 	} else {
 
 		msg_ptr = NULL;
@@ -182,21 +171,20 @@ int javino_send_msg(int port, const char* msg_to_send)
 {		
 
 	//FILE* fd = fopen(port, "w");	
-
 #ifdef __EXTRA_DEBUG_MESSAGES__		
 	fprintf(stderr, 
         "\n(javino_send_msg) Message to send: %s", 
 		msg_to_send);
-	if ( fd == NULL ){
+#endif
 
-		fprintf(stderr, "(javino_send_msg) Error: couldn't open port %s for writing!", port);
-		return 0;
-
-	}
-#endif		
-		
 	int msg_size = strlen( msg_to_send );
-		
+
+#ifdef __EXTRA_DEBUG_MESSAGES__		
+	fprintf(stderr, 
+        "\n(javino_send_msg) Message size: %d", 
+		msg_size);
+#endif	
+
 	char *msg = (char*) malloc( 
         sizeof(char) * ( msg_size + 1 ) );
 		
@@ -214,6 +202,7 @@ int javino_send_msg(int port, const char* msg_to_send)
 	fprintf(stderr, 
 		"\nmsg_size (hex): %s",
 		hex_str);
+	fflush(stderr);
 #endif		
 			
     msg[ 0 ] = 'f';
@@ -242,7 +231,7 @@ int javino_send_msg(int port, const char* msg_to_send)
 		msg,         
         (msg_size + 6) * sizeof(char) );
     								
-	free( msg ); 
+	free( msg );
 
 	//fclose( fd );
  
@@ -257,7 +246,7 @@ int avaliable_msg(){
 
 	pthread_mutex_lock( &mutex );
 
-	if (size > 0 ){
+	if ( recv_buffer != NULL ){
 
 		has_data = 1;
 
