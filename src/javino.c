@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <signal.h>
 
 char* recv_buffer;
 
@@ -94,7 +95,6 @@ void* main_loop(void *port)
 			msg);
 #endif		
 
-
 		pthread_mutex_lock( &mutex );		
 						
 		if ( (long unsigned)nbytes_read != msg_size*sizeof(char) ){
@@ -143,6 +143,24 @@ void javino_init(int port){
 }
 
 
+void javino_exit(){
+
+	int err;
+
+	if ( ( err = pthread_kill(thread_id, 9) ) ){
+
+		fprintf(stderr, 
+			"(javino_exit) WARNING: pthread_kill not successful! Error code = %d", 
+			err);
+
+	}
+
+	pthread_mutex_destroy(&mutex);
+
+}
+
+
+
 char* javino_get_msg(){
 
 	char *msg_ptr;
@@ -167,7 +185,7 @@ char* javino_get_msg(){
 }
 
 
-int javino_send_msg(int port, const char* msg_to_send)
+int javino_send_msg(const char* msg_to_send)
 {		
 
 	//FILE* fd = fopen(port, "w");	
@@ -221,13 +239,13 @@ int javino_send_msg(int port, const char* msg_to_send)
 		
 	msg[ 6 + i ] = '\0';
 		
-#ifdef __DEBUG__		
+#ifdef __EXTRA_DEBUG_MESSAGES__		
 	fprintf(stderr, 
         "\n(javino_send_message) Javino message to send: %s",
 		msg);
-#endif		
+#endif	
 			
-	int nbytes_written = write( port , 
+	int nbytes_written = write( exogenous_port , 
 		msg,         
         (msg_size + 6) * sizeof(char) );
     								
@@ -239,7 +257,7 @@ int javino_send_msg(int port, const char* msg_to_send)
 }
 
 
-int avaliable_msg(){
+int javino_avaliable_msg(){
 
 	int has_data = 0;
 
@@ -253,6 +271,13 @@ int avaliable_msg(){
 	}
 
 	pthread_mutex_unlock( &mutex );
+
+#ifdef __DEBUG__		
+	fprintf(stderr, 
+        "\n(javino_has_data) %s", 
+		(has_data) ? "YES" : "NO"
+		msg);
+#endif	
 
 	return has_data;	
 

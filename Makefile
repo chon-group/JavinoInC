@@ -2,7 +2,7 @@
 SRC = javino.c
 OBJ = $(SRC:.c=.o)
 
-ALL_CFLAGS = $(CFLAGS) -Wall -Wextra -Iinclude -O2
+ALL_CFLAGS = -Wall -Wextra -Iinclude -O2 $(CFLAGS)
 
 CC = gcc
 LD = gcc
@@ -18,6 +18,12 @@ VPATH = src
 all: $(OBJ)
 	mkdir -p lib
 	$(AR) cru lib/libjavino.a $(OBJ)
+
+debug:
+	make CFLAGS="-D__EXTRA_DEBUG_MESSAGES__ -g" all
+
+tests:
+		
 
 clean:
 	rm -f lib/libjavino.a
