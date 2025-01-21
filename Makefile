@@ -19,7 +19,7 @@ all: $(OBJ)
 	mkdir -p lib
 	$(AR) cru lib/libjavino.a $(OBJ)
 
-debug:
+all-dbg:
 	make CFLAGS="-D__EXTRA_DEBUG_MESSAGES__ -g" all
 
 tests:
