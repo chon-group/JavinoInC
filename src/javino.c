@@ -93,7 +93,7 @@ void* main_loop(void *port)
 		fprintf(stderr, 
 			"\n(main_loop) Message received: %s\n", 
 			msg);
-#endif		
+#endif
 
 		pthread_mutex_lock( &mutex );		
 						
@@ -110,6 +110,11 @@ void* main_loop(void *port)
 
 		} else {
 
+#ifdef __EXTRA_DEBUG_MESSAGES__						
+			fprintf(stderr, 
+				"\n(main_loop) Has message in the receive buffer, freeing it");
+#endif			
+
 			if (recv_buffer != NULL){
 				free(recv_buffer);
 			}
@@ -120,7 +125,7 @@ void* main_loop(void *port)
 		pthread_mutex_unlock( &mutex );		
 
 
-#ifdef __DEBUG__							
+#ifdef __EXTRA_DEBUG_MESSAGES__
 		fprintf(stderr,
 			"\n(main_loop) Message received: %s", 
 			msg);
@@ -179,7 +184,14 @@ char* javino_get_msg(){
 
 	}
 
+
 	pthread_mutex_unlock( &mutex );
+
+#ifdef __EXTRA_DEBUG_MESSAGES__						
+	fprintf(stderr, 
+		"\n(javino_get_msg) Pointer returned: %p\n", 
+		msg_ptr);
+#endif	
 
 	return msg_ptr;
 }
@@ -187,6 +199,8 @@ char* javino_get_msg(){
 
 int javino_send_msg(const char* msg_to_send)
 {		
+
+	char msg[ 256 ];
 
 	//FILE* fd = fopen(port, "w");	
 #ifdef __EXTRA_DEBUG_MESSAGES__		
@@ -203,8 +217,7 @@ int javino_send_msg(const char* msg_to_send)
 		msg_size);
 #endif	
 
-	char *msg = (char*) malloc( 
-        sizeof(char) * ( msg_size + 1 ) );
+	// char *msg = (char*) malloc( sizeof(char) * ( msg_size + 1 ) );
 		
 	char hex_str[ 5 ];
 		
@@ -218,7 +231,7 @@ int javino_send_msg(const char* msg_to_send)
 
 #ifdef __EXTRA_DEBUG_MESSAGES__
 	fprintf(stderr, 
-		"\nmsg_size (hex): %s",
+		"\n(javino_send_msg) msg_size (hex): %s",
 		hex_str);
 	fflush(stderr);
 #endif		
@@ -243,15 +256,32 @@ int javino_send_msg(const char* msg_to_send)
 	fprintf(stderr, 
         "\n(javino_send_message) Javino message to send: %s",
 		msg);
-#endif	
-			
+#endif
+
+	int final_msg_size = (int)( (msg_size + 6) * sizeof(char) );
+		
 	int nbytes_written = write( exogenous_port , 
 		msg,         
-        (msg_size + 6) * sizeof(char) );
-    								
-	free( msg );
+        final_msg_size );
 
-	//fclose( fd );
+	if ( nbytes_written != final_msg_size ){
+
+#ifdef __EXTRA_DEBUG_MESSAGES__		
+		fprintf(stderr, 
+			"\n(javino_send_message) Error: number of bytes written (%d) != from sent (%d)",
+			nbytes_written, final_msg_size );
+#endif
+		perror( "(javino_send_message)" );
+		// free( msg );
+
+	} else {
+
+#ifdef __EXTRA_DEBUG_MESSAGES__		
+		fprintf(stderr, 
+			"\n(javino_send_message) Message sent");
+#endif
+
+	}
  
     return nbytes_written;
 }
@@ -272,11 +302,10 @@ int javino_avaliable_msg(){
 
 	pthread_mutex_unlock( &mutex );
 
-#ifdef __DEBUG__		
+#if 0
 	fprintf(stderr, 
         "\n(javino_has_data) %s", 
-		(has_data) ? "YES" : "NO"
-		msg);
+		(has_data) ? "YES" : "NO" );
 #endif	
 
 	return has_data;	
