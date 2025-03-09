@@ -11,6 +11,8 @@
 
 char* recv_buffer;
 
+FILE *log_fd;
+
 pthread_mutex_t mutex;
 
 pthread_t thread_id;
@@ -34,25 +36,45 @@ void* main_loop(void *port)
 	
 	long int msg_size;
 
-	int nbytes_read;
-
+	int nbytes_read;	
+	
 	while (1) {
 	
 		nbytes_read = read( local_port , 
 			buffer,  
 			sizeof(char) * 6) ;
 							
-		if ( nbytes_read != (long int)(6*sizeof(char)) ){
-			fprintf(stderr, "\nError! Couldn't get message header!");
+		if ( nbytes_read != (long int)(6*sizeof(char)) )
+		{
+			fprintf(log_fd, "\n(main_loop) Error! Couldn't get message header!");						
+			
+			if (log_fd != NULL ){
+			
+				buffer[ nbytes_read ] = '\n';
+			
+				long unsigned int nbytes_written_log;
+			
+				fprintf(log_fd, " Saving received data on log file ...");
+								
+				nbytes_written_log = fwrite( buffer, sizeof(char), nbytes_read + 1 , log_fd );
+				
+				if (nbytes_written_log != strlen( buffer ) ){
+				
+					fprintf(log_fd, "\n(main_loop) Error saving data to log file ! ");
+				
+				}
+				
+								
+			}
 
-			return NULL;
+			continue;
 
 		}
 
 #ifdef __EXTRA_DEBUG_MESSAGES__				
 	else {
 
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(main_loop) Message header: %s", 
 			buffer);
 	}
@@ -65,7 +87,7 @@ void* main_loop(void *port)
 		msg_size_str[4] = '\0';
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(main_loop) Message size (string): %s", 
 			msg_size_str);
 #endif		
@@ -75,7 +97,7 @@ void* main_loop(void *port)
 			0);
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(main_loop) Message size (int): %ld\n", 
 			msg_size);
 #endif
@@ -90,7 +112,7 @@ void* main_loop(void *port)
 		msg[ msg_size ] = '\0';
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(main_loop) Message received: %s\n", 
 			msg);
 #endif
@@ -99,7 +121,7 @@ void* main_loop(void *port)
 						
 		if ( (long unsigned)nbytes_read != msg_size*sizeof(char) ){
 
-			fprintf(stderr, 
+			fprintf(log_fd, 
 				"\n(main_loop) Error: Expected %lu bytes read, got %lu",
 				msg_size*sizeof(char),
 				(long unsigned)nbytes_read );
@@ -111,7 +133,7 @@ void* main_loop(void *port)
 		} else {
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
-			fprintf(stderr, 
+			fprintf(log_fd, 
 				"\n(main_loop) Has message in the receive buffer, freeing it");
 #endif			
 
@@ -126,7 +148,7 @@ void* main_loop(void *port)
 
 
 #ifdef __EXTRA_DEBUG_MESSAGES__
-		fprintf(stderr,
+		fprintf(log_fd,
 			"\n(main_loop) Message received: %s", 
 			msg);
 #endif
@@ -139,6 +161,23 @@ void javino_init(int port){
 	pthread_mutex_init( &mutex, NULL);
 
 	exogenous_port = port;
+
+#if 0
+	log_fd = stderr;
+#else
+	log_fd = fopen("/tmp/javino.log", "w" );
+#endif	
+		
+	if ( log_fd == NULL && log_fd != stderr ){
+	
+		fprintf(log_fd, "(javino_init) Warning: couldn't create javino log file! ");
+		perror("");
+		
+	} else { 
+	
+	}	
+
+	printf("Log fd( %ld )", (long int)log_fd);
 
 	pthread_create( &thread_id,
 		NULL,
@@ -154,11 +193,23 @@ void javino_exit(){
 
 	if ( ( err = pthread_kill(thread_id, 9) ) ){
 
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"(javino_exit) WARNING: pthread_kill not successful! Error code = %d", 
 			err);
 
 	}
+	
+	if (log_fd != NULL  ){
+	
+		fprintf(log_fd, "(javino_exit) Closing log file ...");
+		
+		if ( log_fd != NULL && log_fd != stderr ){
+	
+			fclose( log_fd );
+		}	
+	
+	}
+
 
 	pthread_mutex_destroy(&mutex);
 
@@ -188,7 +239,7 @@ char* javino_get_msg(){
 	pthread_mutex_unlock( &mutex );
 
 #ifdef __EXTRA_DEBUG_MESSAGES__						
-	fprintf(stderr, 
+	fprintf(log_fd, 
 		"\n(javino_get_msg) Pointer returned: %p\n", 
 		msg_ptr);
 #endif	
@@ -204,7 +255,7 @@ int javino_send_msg(const char* msg_to_send)
 
 	//FILE* fd = fopen(port, "w");	
 #ifdef __EXTRA_DEBUG_MESSAGES__		
-	fprintf(stderr, 
+	fprintf(log_fd, 
         "\n(javino_send_msg) Message to send: %s", 
 		msg_to_send);
 #endif
@@ -212,7 +263,7 @@ int javino_send_msg(const char* msg_to_send)
 	int msg_size = strlen( msg_to_send );
 
 #ifdef __EXTRA_DEBUG_MESSAGES__		
-	fprintf(stderr, 
+	fprintf(log_fd, 
         "\n(javino_send_msg) Message size: %d", 
 		msg_size);
 #endif	
@@ -230,10 +281,10 @@ int javino_send_msg(const char* msg_to_send)
 
 
 #ifdef __EXTRA_DEBUG_MESSAGES__
-	fprintf(stderr, 
+	fprintf(log_fd, 
 		"\n(javino_send_msg) msg_size (hex): %s",
 		hex_str);
-	fflush(stderr);
+	fflush(log_fd);
 #endif		
 			
     msg[ 0 ] = 'f';
@@ -253,7 +304,7 @@ int javino_send_msg(const char* msg_to_send)
 	msg[ 6 + i ] = '\0';
 		
 #ifdef __EXTRA_DEBUG_MESSAGES__		
-	fprintf(stderr, 
+	fprintf(log_fd, 
         "\n(javino_send_message) Javino message to send: %s",
 		msg);
 #endif
@@ -267,7 +318,7 @@ int javino_send_msg(const char* msg_to_send)
 	if ( nbytes_written != final_msg_size ){
 
 #ifdef __EXTRA_DEBUG_MESSAGES__		
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(javino_send_message) Error: number of bytes written (%d) != from sent (%d)",
 			nbytes_written, final_msg_size );
 #endif
@@ -277,7 +328,7 @@ int javino_send_msg(const char* msg_to_send)
 	} else {
 
 #ifdef __EXTRA_DEBUG_MESSAGES__		
-		fprintf(stderr, 
+		fprintf(log_fd, 
 			"\n(javino_send_message) Message sent");
 #endif
 
@@ -303,7 +354,7 @@ int javino_avaliable_msg(){
 	pthread_mutex_unlock( &mutex );
 
 #if 0
-	fprintf(stderr, 
+	fprintf(log_fd, 
         "\n(javino_has_data) %s", 
 		(has_data) ? "YES" : "NO" );
 #endif	
