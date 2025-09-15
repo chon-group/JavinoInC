@@ -34,9 +34,9 @@ void* main_loop(void *port)
 	
 	char msg_size_str[5];
 	
-	long int msg_size;
+	size_t msg_size;
 
-	int nbytes_read;	
+	ssize_t nbytes_read;	
 	
 	while (1) {
 	
@@ -162,22 +162,22 @@ void javino_init(int port){
 
 	exogenous_port = port;
 
-#if 0
-	log_fd = stderr;
-#else
+#ifdef __JAVINO_LOG__
 	log_fd = fopen("/tmp/javino.log", "w" );
-#endif	
-		
-	if ( log_fd == NULL && log_fd != stderr ){
 	
-		fprintf(log_fd, "(javino_init) Warning: couldn't create javino log file! ");
+	if ( log_fd == NULL ){
+	
+		fprintf(stderr, "(javino_init) Warning: couldn't create javino log file! ");
 		perror("");
 		
 	} else { 
+
+		//printf("Log fd( %ld )", (long int)log_fd);
 	
 	}	
-
-	printf("Log fd( %ld )", (long int)log_fd);
+#else
+	log_fd = stderr;	
+#endif			
 
 	pthread_create( &thread_id,
 		NULL,
@@ -199,6 +199,7 @@ void javino_exit(){
 
 	}
 	
+#ifdef __JAVINO_LOG__	
 	if (log_fd != NULL  ){
 	
 		fprintf(log_fd, "(javino_exit) Closing log file ...");
@@ -206,9 +207,10 @@ void javino_exit(){
 		if ( log_fd != NULL && log_fd != stderr ){
 	
 			fclose( log_fd );
-		}	
-	
+
+		}		
 	}
+#endif
 
 
 	pthread_mutex_destroy(&mutex);
