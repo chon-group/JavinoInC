@@ -44,11 +44,12 @@ void* main_loop(void *port)
 			buffer,  
 			sizeof(char) * 6) ;
 							
-		if ( nbytes_read != (long int)(6*sizeof(char)) )
+		if ( nbytes_read != (ssize_t)(6*sizeof(char)) )
 		{
-			fprintf(log_fd, "\n(main_loop) Error! Couldn't get message header!");						
-			
+#ifdef __JAVINO_LOG__							
 			if (log_fd != NULL ){
+
+				fprintf(log_fd, "\n(main_loop) Error! Couldn't get message header!");
 			
 				buffer[ nbytes_read ] = '\n';
 			
@@ -66,6 +67,7 @@ void* main_loop(void *port)
 				
 								
 			}
+#endif			
 
 			continue;
 
